@@ -6,91 +6,126 @@
 /*   By: rrouille <rrouille@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/25 11:11:32 by rrouille          #+#    #+#             */
-/*   Updated: 2023/06/08 16:21:53 by rrouille         ###   ########.fr       */
+/*   Updated: 2023/08/12 15:47:10 by rrouille         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <unistd.h>
+#include <stdio.h>
 
-void	print_string(va_list args)
+int	print_nbr_base(int nbr, int base, const char *str_base)
 {
-	char	*str;
+	int	nbr_tmp;
+	int	len;
 
-	str = va_arg(args, char *);
-	while (*str++)
-		write(1, str - 1, 1);
-}
-
-void	print_number_helper(int nbr, int base, const char *digits)
-{
+	len = 0;
 	if (nbr >= base)
-		print_number_helper(nbr / base, base, digits);
-	write(1, &digits[nbr % base], 1);
+	{
+		nbr_tmp = nbr / base;
+		len += print_nbr_base(nbr_tmp, base, str_base);
+		len += print_nbr_base(nbr % base, base, str_base);
+	}
+	else
+	{
+		write(1, &str_base[nbr], 1);
+		len++;
+	}
+	return (len);
 }
 
-void	print_int(va_list args)
+int	print_str(char *str)
 {
-	int	num;
+	int		len;
 
-	num = va_arg(args, int);
-	if (num < 0)
+	len = 0;
+	if (!str)
+	{
+		write(1, "(null)", 6);
+		return (6);
+	}
+	while (*str)
+	{
+		write(1, str, 1);
+		str++;
+		len++;
+	}
+	return (len);
+}
+
+int	print_nbr(int nbr)
+{
+	int	len;
+
+	len = 0;
+	if (nbr == -2147483648)
+	{
+		write(1, "-2147483648", 11);
+		return (len + 11);
+	}
+	else if (nbr < 0)
 	{
 		write(1, "-", 1);
-		num = -num;
+		nbr = -nbr;
+		len++;
 	}
-	print_number_helper(num, 10, "0123456789");
+	return (len + print_nbr_base(nbr, 10, "0123456789"));
 }
 
-void	print_hex(va_list args)
+int	print_hex(unsigned int hex)
 {
-	unsigned int	num;
-	const char		*digits;
-
-	num = va_arg(args, unsigned int);
-	digits = "0123456789abcdef";
-	print_number_helper(num, 16, digits);
-}
-
-int	ft_printf(const char *format, ...)
-{
-	va_list	args;
-
-	va_start(args, format);
-	while (*format)
+	int	len;
+	
+	len = 0;
+	if (hex == 2147483648)
 	{
-		if (*format == '%')
+		write(1, "80000000", 8);
+		return (len + 8);
+	}
+	if (hex == 4294967295)
+	{
+		write(1, "ffffffff", 8);
+		return (len + 8);
+	}
+	return (len + print_nbr_base(hex, 16, "0123456789abcdef"));
+}
+
+int	ft_printf(const char *arg, ...)
+{
+	va_list	ap;
+	int		len;
+
+	va_start(ap, arg);
+	len = 0;
+	while (*arg)
+	{
+		if (*arg == '%')
 		{
-			format++;
-			switch (*format)
+			switch (*++arg)
 			{
-				case 's':
-					print_string(args);
-					break;
-				case 'd':
-					print_int(args);
-					break;
-				case 'x':
-					print_hex(args);
-					break;
-				default:
-					write(1, "%", 1);
-					write(1, format, 1);
-					break;
+			case 's':
+				len += print_str(va_arg(ap, char*));
+				break;
+			case 'd':
+				len += print_nbr(va_arg(ap, int));
+				break;
+			case 'x':
+				len += print_hex(va_arg(ap, unsigned int));
+				break;
+			default:
+				write(1, "%", 1);
+				write(1, arg, 1);
+				len++;
+				break;
 			}
 		}
 		else
-			write(1, format, 1);
-		format++;
+		{
+			len++;
+			write(1, arg, 1);
+		}
+		arg++;
 	}
-	va_end(args);
-	return (0);
-}
-
-int	main(void)
-{
-	ft_printf("Hello, %s! The number is %d, hex is %x\n", "world", -42, 42);
-	return (0);
+	va_end(ap);
+	return (len);
 }
