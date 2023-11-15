@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-int	print_nbr_base(int nbr, int base, const char *str_base)
+int	print_nbr_base(unsigned int nbr, unsigned int base, const char *str_base)
 {
 	int	nbr_tmp;
 	int	len;
